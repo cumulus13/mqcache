@@ -2,6 +2,14 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.0.1] - 2026-10-11
+
+### Fixed
+- Build: queue ACLs now use `SetPermissions(MessageQueueAccessControlEntry)`, the overload that exists in `Experimental.System.Messaging` 1.2.0.
+- Docs build script: chapter discovery no longer relies on bracket wildcards in `-Filter` (unsupported by the Windows file system provider).
+- Packaging: `MQCache.Core` and `MQCache.Messaging` are packed alongside `MQCache.Client`, so the client package restores from NuGet; server and CLI are not packable.
+- Pinned the SDK to 8.0.x via `global.json`.
+
 ## [1.0.0] - 2026-10-11
 
 ### Added

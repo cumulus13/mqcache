@@ -64,11 +64,14 @@ public static class QueueAdmin
         });
 
         foreach (var user in s.Allow ?? Array.Empty<string>())
-            Try(log, "allow " + user, () => q.SetPermissions(user,
-                MessageQueueAccessRights.WriteMessage | MessageQueueAccessRights.GetQueueProperties, AccessControlEntryType.Allow));
+            Try(log, "allow " + user, () => Grant(q, user,
+                MessageQueueAccessRights.WriteMessage | MessageQueueAccessRights.GetQueueProperties));
         foreach (var user in s.Admin ?? Array.Empty<string>())
-            Try(log, "admin " + user, () => q.SetPermissions(user, MessageQueueAccessRights.FullControl, AccessControlEntryType.Allow));
+            Try(log, "admin " + user, () => Grant(q, user, MessageQueueAccessRights.FullControl));
     }
+
+    private static void Grant(MessageQueue q, string account, MessageQueueAccessRights rights) =>
+        q.SetPermissions(new MessageQueueAccessControlEntry(new Trustee(account), rights, AccessControlEntryType.Allow));
 
     private static void Try(ILog log, string what, Action a)
     {

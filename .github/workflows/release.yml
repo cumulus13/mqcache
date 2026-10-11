@@ -76,8 +76,8 @@ jobs:
           pattern: bin-*
           merge-multiple: true
 
-      - name: Pack NuGet client library
-        run: dotnet pack src/MQCache.Client -c Release -p:Version=${{ needs.verify.outputs.version }} -o release
+      - name: Pack NuGet packages (Core, Messaging, Client)
+        run: dotnet pack MQCache.sln -c Release -p:Version=${{ needs.verify.outputs.version }} -o release
 
       - name: Build docs
         shell: pwsh

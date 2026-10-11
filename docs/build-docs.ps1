@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 if (-not (Get-Command pandoc -ErrorAction SilentlyContinue)) { throw 'pandoc not found. Install from https://pandoc.org/installing.html (choco install pandoc).' }
 
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
-$chapters = Get-ChildItem -Path $PSScriptRoot -Filter '[0-9][0-9]-*.md' | Sort-Object Name
+$chapters = Get-ChildItem -Path $PSScriptRoot -File | Where-Object { $_.Name -match '^\d{2}-.*\.md$' } | Sort-Object Name
 if (-not $chapters) { throw 'no chapters found (docs/NN-*.md)' }
 
 $meta = @"
