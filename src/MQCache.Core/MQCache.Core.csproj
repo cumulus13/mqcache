@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>MQCache.Core</RootNamespace>
+    <Description>Platform-independent core of MQCache: keyspace store, command processor, wire codec, config, snapshots.</Description>
+    <Copyright>Copyright © 2026 Hadi Cahyadi</Copyright>
+    <Authors>Hadi Cahyadi</Authors>
+    <Company>cumulus13</Company>
+    <RepositoryBranch>master</RepositoryBranch>
+    <PackageId>MQCache.Core</PackageId>
+    <Product>MQCache Core</Product>
+    <Version>1.0.0</Version>
+    <PackageTags>mqcache msmq caching redis core</PackageTags>
+    <PackageProjectUrl>https://github.com/cumulus13/mqcache</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cumulus13/mqcache</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

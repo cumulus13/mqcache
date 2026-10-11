@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>MQCache.Client</AssemblyName>
+    <RootNamespace>MQCache.Client</RootNamespace>
+    <PackageId>MQCache.Client</PackageId>
+    <Description>Client library for MQCache: a Redis-like cache served over Microsoft Message Queuing (Windows only).</Description>
+    <PackageTags>msmq;cache;redis;messaging;windows</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright © 2026 Hadi Cahyadi</Copyright>
+    <Authors>Hadi Cahyadi</Authors>
+    <Company>cumulus13</Company>
+    <RepositoryBranch>master</RepositoryBranch>
+    <PackageId>MQCache-client</PackageId>
+    <Product>MQCache Client</Product>
+    <Version>1.0.0</Version>
+    <PackageProjectUrl>https://github.com/cumulus13/mqcache</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cumulus13/mqcache</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+    <ProjectReference Include="..\MQCache.Core\MQCache.Core.csproj" />
+    <ProjectReference Include="..\MQCache.Messaging\MQCache.Messaging.csproj" />
+  </ItemGroup>
+</Project>

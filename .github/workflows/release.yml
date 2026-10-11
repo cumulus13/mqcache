@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without the leading v (e.g. 1.0.1). Only used for manual dry runs.
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - id: v
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "bad version '$v'" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+      - run: dotnet test tests/MQCache.Core.Tests -c Release -p:Version=${{ steps.v.outputs.version }}
+
+  binaries:
+    needs: verify
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        rid: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $v = '${{ needs.verify.outputs.version }}'
+          foreach ($p in 'Server', 'Cli') {
+            dotnet publish "src/MQCache.$p" -c Release -r ${{ matrix.rid }} --self-contained `
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none `
+              -p:Version=$v -o "stage/${{ matrix.rid }}"
+          }
+          Copy-Item conf/mqcache.conf, scripts/install-service.ps1, scripts/uninstall-service.ps1, LICENSE, README.md "stage/${{ matrix.rid }}"
+          Remove-Item "stage/${{ matrix.rid }}/*.pdb" -ErrorAction SilentlyContinue
+          Compress-Archive -Path "stage/${{ matrix.rid }}/*" -DestinationPath "mqcache-$v-${{ matrix.rid }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.rid }}
+          path: mqcache-*.zip
+
+  publish:
+    needs: [verify, binaries]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          pattern: bin-*
+          merge-multiple: true
+
+      - name: Pack NuGet client library
+        run: dotnet pack src/MQCache.Client -c Release -p:Version=${{ needs.verify.outputs.version }} -o release
+
+      - name: Build docs
+        shell: pwsh
+        run: |
+          choco install pandoc -y --no-progress
+          ./docs/build-docs.ps1 -Version ${{ needs.verify.outputs.version }} -Out release/docs
+          Compress-Archive -Path release/docs/* -DestinationPath "release/mqcache-${{ needs.verify.outputs.version }}-docs.zip"
+
+      - name: Checksums and release notes
+        shell: pwsh
+        run: |
+          $v = '${{ needs.verify.outputs.version }}'
+          Get-ChildItem release -File | Where-Object { $_.Extension -in '.zip', '.nupkg' } |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
+            Set-Content release/SHA256SUMS.txt
+          $log = Get-Content CHANGELOG.md -Raw
+          $m = [regex]::Match($log, "(?ms)^## \[$([regex]::Escape($v))\].*?(?=^## \[|\z)")
+          $notes = if ($m.Success) { $m.Value } else { "Release $v" }
+          Set-Content release/NOTES.md $notes
+
+      - name: Create GitHub release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MQCache ${{ needs.verify.outputs.version }}
+          body_path: release/NOTES.md
+          prerelease: ${{ contains(needs.verify.outputs.version, '-') }}
+          files: |
+            release/*.zip
+            release/*.nupkg
+            release/SHA256SUMS.txt
+
+      - name: Push to NuGet
+        if: github.event_name == 'push' && env.NUGET_API_KEY != ''
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "release/*.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate

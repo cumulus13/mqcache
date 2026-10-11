@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>mqcache-cli</AssemblyName>
+    <RootNamespace>MQCache.Cli</RootNamespace>
+    <Description>Interactive command line client for MQCache (like redis-cli).</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Copyright>Copyright © 2026 Hadi Cahyadi</Copyright>
+    <Authors>Hadi Cahyadi</Authors>
+    <Company>cumulus13</Company>
+    <RepositoryBranch>master</RepositoryBranch>
+    <PackageId>MQCache-cli</PackageId>
+    <Product>MQCache CLI</Product>
+    <Version>1.0.0</Version>
+    <PackageTags>mqcache msmq caching redis cli client</PackageTags>
+    <PackageProjectUrl>https://github.com/cumulus13/mqcache</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cumulus13/mqcache</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MQCache.Client\MQCache.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

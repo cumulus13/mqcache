@@ -1,0 +1,58 @@
+# Wire protocol (version 1)
+
+Useful for writing clients in other languages (C++ via the MSMQ COM/C API, PowerShell, etc.). All integers are **little-endian**; `bytes` = `int32 length` + data; strings are UTF-8 `bytes`.
+
+## MSMQ message properties
+
+| Property | Request | Response | Publication |
+|---|---|---|---|
+| `Label` | `mqcache.req` | `mqcache.resp` | `mqcache.pub` |
+| `AppSpecific` | `1` | `1` | `1` |
+| `ResponseQueue` | client reply queue (`DIRECT=` format name) | - | - |
+| `CorrelationId` | - | id of the request message | - |
+| `Priority` | client choice | copied from request | normal |
+| `Recoverable` | client choice (default true) | `reply-recoverable` | false |
+| `TimeToBeReceived` | `timeout x (retries+1)` | `reply-ttl-seconds` | `reply-ttl-seconds` |
+| `AdministrationQueue` + `AcknowledgeType` | optional (`FullReceive`) | - | - |
+| Body | `BodyStream` (raw bytes, no formatter) | same | same |
+
+No .NET serializer is involved (`BinaryFormatter` is not used), so any MSMQ client can interoperate.
+
+## Request body
+
+```
+byte    version = 1
+byte    flags            bit0 = atomic, bit1 = no-reply
+byte[16] requestId       GUID bytes (Guid.ToByteArray); idempotency key reused on retries
+bytes   auth             password, empty if none
+int32   commandCount     1..100000
+repeat commandCount:
+  int32 argc             name + arguments (1..65536)
+  bytes name
+  bytes arg  x (argc-1)
+```
+
+## Response body
+
+```
+byte version = 1
+byte[16] requestId
+int32 count
+repeat count: value
+value := byte type + payload
+  1 Status  bytes(text)          2 Error  bytes(text)
+  3 Integer int64                4 Bulk   bytes
+  5 Null    (no payload)         6 Array  int32 n, n x value
+```
+
+The response contains exactly one value per command. If the server rejects a whole message (undecodable, poison) it answers with a single `Error` and an all-zero request id.
+
+## Publication body
+
+```
+byte version = 1 ; byte kind (1 = channel, 2 = pattern) ; bytes pattern ; bytes channel ; bytes payload
+```
+
+## Limits and validation
+
+Every length is checked against the remaining bytes, nesting is limited to 16 levels, and trailing bytes are rejected. Malformed requests go to the poison queue; they never crash a worker.

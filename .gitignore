@@ -1,0 +1,17 @@
+bin/
+obj/
+dist/
+data/
+*.user
+*.suo
+.vs/
+.idea/
+TestResults/
+*.mqdb
+*.mqdb.tmp
+*.mqdb.bak
+coverage*/
+
+# Ignore Sublime Text project files
+*.sublime-project
+*.sublime-workspace

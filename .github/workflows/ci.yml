@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    name: Build and unit tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Restore
+        run: dotnet restore MQCache.sln
+
+      - name: Format check (informational)
+        run: dotnet format MQCache.sln --verify-no-changes --no-restore --severity warn
+        continue-on-error: true
+
+      - name: Build
+        run: dotnet build MQCache.sln -c Release --no-restore
+
+      - name: Unit tests (Core)
+        run: >
+          dotnet test tests/MQCache.Core.Tests -c Release --no-build
+          --logger "trx;LogFileName=core.trx" --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: TestResults/**
+
+  integration:
+    name: Integration tests (real MSMQ)
+    runs-on: windows-latest
+    needs: build-test
+    # Enabling optional Windows features on hosted runners is best effort; the tests skip themselves when MSMQ is missing.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Enable and start MSMQ
+        shell: pwsh
+        run: |
+          Enable-WindowsOptionalFeature -Online -FeatureName MSMQ-Server -All -NoRestart | Out-Null
+          Start-Service MSMQ
+          Get-Service MSMQ
+
+      - name: Run integration tests
+        run: >
+          dotnet test tests/MQCache.IntegrationTests -c Release
+          --logger "trx;LogFileName=integration.trx" --results-directory TestResults
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: TestResults/**
+
+  package:
+    name: Pack and publish-dry-run
+    runs-on: windows-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Pack client library
+        run: dotnet pack src/MQCache.Client -c Release -o artifacts/nuget
+
+      - name: Publish server and CLI (win-x64, single file)
+        run: |
+          dotnet publish src/MQCache.Server -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o artifacts/win-x64
+          dotnet publish src/MQCache.Cli -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o artifacts/win-x64
+
+      - name: Smoke test server config validation
+        run: artifacts/win-x64/mqcache-server.exe --test-config conf/mqcache.conf
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-binaries
+          path: artifacts/**
+
+  docs:
+    name: Build documentation
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pandoc
+        run: choco install pandoc -y --no-progress
+      - name: Build docs (md, html, docx, pdf, epub)
+        shell: pwsh
+        run: ./docs/build-docs.ps1 -Version ci-${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: dist/docs/**
