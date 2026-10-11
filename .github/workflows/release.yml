@@ -100,7 +100,7 @@ jobs:
 
       - name: Create GitHub release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: MQCache ${{ needs.verify.outputs.version }}
           body_path: release/NOTES.md
