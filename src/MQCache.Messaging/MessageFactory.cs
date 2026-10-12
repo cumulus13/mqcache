@@ -26,6 +26,8 @@ public static class MessageFactory
     public const string ResponseLabel = "mqcache.resp";
     public const string PublishLabel = "mqcache.pub";
     public const int ProtocolId = 1;
+    /// <summary>VT_ARRAY | VT_UI1: lets COM/C API clients (Python, Go, Rust, ...) read the body as a plain byte array.</summary>
+    public const int BodyTypeByteArray = 0x2011;
     public const long MaxBodyBytes = 4L * 1024 * 1024;
 
     public static Message Request(byte[] body, SendOptions o, string? responseFormat, string? adminFormat)
@@ -35,6 +37,7 @@ public static class MessageFactory
             Label = RequestLabel,
             AppSpecific = ProtocolId,
             BodyStream = new MemoryStream(body, writable: false),
+            BodyType = BodyTypeByteArray,
             Priority = o.Priority,
             Recoverable = o.Recoverable,
             TimeToBeReceived = o.Ttl,
@@ -56,6 +59,7 @@ public static class MessageFactory
         Label = ResponseLabel,
         AppSpecific = ProtocolId,
         BodyStream = new MemoryStream(body, writable: false),
+        BodyType = BodyTypeByteArray,
         CorrelationId = correlationId,
         Priority = priority,
         Recoverable = recoverable,
@@ -68,6 +72,7 @@ public static class MessageFactory
         Label = PublishLabel,
         AppSpecific = ProtocolId,
         BodyStream = new MemoryStream(body, writable: false),
+        BodyType = BodyTypeByteArray,
         Recoverable = false,
         TimeToBeReceived = ttl,
         UseDeadLetterQueue = false,
@@ -82,6 +87,7 @@ public static class MessageFactory
             Label = label.Length > 120 ? label[..120] : label,
             AppSpecific = original.AppSpecific,
             BodyStream = new MemoryStream(ReadBody(original, MaxBodyBytes), writable: false),
+            BodyType = BodyTypeByteArray,
             Priority = original.Priority,
             Recoverable = true,
         };

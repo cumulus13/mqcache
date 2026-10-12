@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mqcache"
+version = "0.1.0"
+description = "Python client for MQCache: a Redis-like cache served over Microsoft Message Queuing (MSMQ). Windows only."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Hadi Cahyadi", email = "cumulus13@gmail.com" }]
+keywords = ["msmq", "cache", "redis", "messaging", "windows"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Database",
+]
+dependencies = ["pywin32>=306; sys_platform == 'win32'"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+mqcache-py = "mqcache.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cumulus13/MQCache"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

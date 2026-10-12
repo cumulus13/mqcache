@@ -15,6 +15,7 @@ A **Redis-like cache server and client that use Microsoft Message Queuing (MSMQ)
 * `mqcache-server` (console or Windows Service) with a `redis.conf`-style **config file**
 * `mqcache-cli` interactive shell + `MQCache.Client` NuGet library
 * Uses MSMQ features on purpose: transactional queues, persistent messages, priorities, TTL, dead-letter, journal, acknowledgments, selective receive, poison handling, ACLs, optional multicast (see [feature matrix](docs/02-msmq-feature-matrix.md))
+* **Python SDK** (`sdk/python`, `pip install mqcache`): same semantics through MSMQ COM; wire codec verified byte for byte against the .NET reference
 * Idempotent retries (request-id dedupe), snapshots with checksum, LRU eviction, memory limit, password, structured logs
 * Complete documentation exportable to **PDF / DOCX / HTML / EPUB / Markdown**; GitHub workflows for CI, build and release
 
@@ -50,6 +51,7 @@ using var sub = cache.Subscribe("news"); cache.Publish("news", "hello");
 | [08 Protocol](docs/08-protocol.md) | wire format for other clients |
 | [09 Operations](docs/09-operations.md) | monitoring, backup, security, troubleshooting |
 | [10 Development](docs/10-development.md), [11 FAQ](docs/11-faq.md) | build, test, release |
+| [12 Python SDK](docs/12-python-sdk.md) | usage, differences, writing other SDKs |
 
 A pre-built [PDF](docs/MQCache-documentation.pdf) is included. Export: `pwsh docs/build-docs.ps1` (needs [pandoc](https://pandoc.org)) writes `dist/docs/mqcache-docs.{md,html,docx,pdf,epub}`.
 

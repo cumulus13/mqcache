@@ -2,6 +2,16 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.0.3] - 2026-10-12
+
+### Added
+- Python SDK `mqcache` 0.1.0 (`sdk/python`): client, pipelines, pub/sub, CLI, MSMQ COM transport, pluggable transport.
+- Shared wire-protocol golden vectors (`sdk/testdata/golden.json`) and the generator `sdk/tools/GoldenVectors`.
+- Documentation chapter 12 (Python SDK) and interoperability rules in chapter 8.
+
+### Changed
+- All outgoing messages now set `BodyType = 0x2011` (VT_ARRAY|VT_UI1) so COM/C-API clients can read bodies as byte arrays. .NET peers are unaffected.
+
 ## [1.0.2] - 2026-10-12
 
 ### Fixed
