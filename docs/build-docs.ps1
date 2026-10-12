@@ -50,13 +50,19 @@ foreach ($f in $Formats) {
                 @{ Name = 'xelatex'; Run = { pandoc $combined @common --pdf-engine=xelatex -V geometry:margin=2cm -V colorlinks=true -o $o } },
                 @{ Name = 'wkhtmltopdf'; Run = { pandoc $combined @common --pdf-engine=wkhtmltopdf --css $css -o $o } },
                 @{ Name = 'browser'; Run = {
-                    $html = Join-Path $Out 'mqcache-docs.html'
+                    $html = Join-Path $Out 'mcache-docs.html'
                     if (-not (Test-Path $html)) { pandoc $combined @common --standalone --embed-resources --css $css -o $html }
-                    $browser = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
-                                 "$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe") |
-                               Where-Object { Test-Path $_ } | Select-Object -First 1
+                    $candidates = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+                                    "$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe")
+                    $browser = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
                     if (-not $browser) { throw 'no Edge/Chrome found' }
-                    & $browser --headless=new --disable-gpu --no-pdf-header-footer "--print-to-pdf=$o" ([uri](Resolve-Path $html).Path).AbsoluteUri | Out-Null
+                    $profile = Join-Path ([IO.Path]::GetTempPath()) ('mqdocs-' + [guid]::NewGuid().ToString('N'))
+                    $url = ([uri](Resolve-Path $html).Path).AbsoluteUri
+                    # msedge/chrome are GUI-subsystem executables: PowerShell does not wait for them unless Start-Process -Wait is used.
+                    $argLine = "--headless=new --disable-gpu --no-first-run --no-pdf-header-footer --user-data-dir=`"$profile`" --print-to-pdf=`"$o`" `"$url`""
+                    Start-Process -FilePath $browser -ArgumentList $argLine -Wait -NoNewWindow
+                    for ($i = 0; $i -lt 60 -and -not (Test-Path $o); $i++) { Start-Sleep -Milliseconds 500 }
+                    Remove-Item $profile -Recurse -Force -ErrorAction SilentlyContinue
                 } }
             )
             foreach ($a in $attempts) {
@@ -67,7 +73,10 @@ foreach ($f in $Formats) {
                 if ((Test-Path $o) -and (Get-Item $o).Length -gt 1024) { Write-Host "PDF built with $engine"; $produced += $o; break }
                 Write-Warning "PDF via $engine produced no file; trying next engine"
             }
-            if (-not (Test-Path $o)) { Write-Warning 'PDF not produced (no working engine: xelatex, wkhtmltopdf, Edge, Chrome).' }
+            if (-not (Test-Path $o)) {
+                $msg = 'PDF not produced (no working engine: xelatex, wkhtmltopdf, Edge, Chrome).'
+                if ($env:CI -eq 'true') { throw $msg } else { Write-Warning $msg }
+            }
         }
         default { Write-Warning "unknown format '$f'" }
     }

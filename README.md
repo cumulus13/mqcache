@@ -5,12 +5,20 @@ A **Redis-like cache server and client that use Microsoft Message Queuing (MSMQ)
 [![CI](https://github.com/cumulus13/MQCache/actions/workflows/ci.yml/badge.svg)](https://github.com/cumulus13/MQCache/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cumulus13/mqcache/master/icon.png" alt="Logo" width="320">
+</p>
+
+
 * Redis-style commands: strings, hashes, lists, sets, TTL, `INCR`, `KEYS`, pipelines, pub/sub, `INFO`, `CONFIG`
 * `mqcache-server` (console or Windows Service) with a `redis.conf`-style **config file**
 * `mqcache-cli` interactive shell + `MQCache.Client` NuGet library
 * Uses MSMQ features on purpose: transactional queues, persistent messages, priorities, TTL, dead-letter, journal, acknowledgments, selective receive, poison handling, ACLs, optional multicast (see [feature matrix](docs/02-msmq-feature-matrix.md))
 * Idempotent retries (request-id dedupe), snapshots with checksum, LRU eviction, memory limit, password, structured logs
 * Complete documentation exportable to **PDF / DOCX / HTML / EPUB / Markdown**; GitHub workflows for CI, build and release
+
+[![Architecture](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture1.png)](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture1.png)
 
 ## Quick start
 
@@ -43,7 +51,7 @@ using var sub = cache.Subscribe("news"); cache.Publish("news", "hello");
 | [09 Operations](docs/09-operations.md) | monitoring, backup, security, troubleshooting |
 | [10 Development](docs/10-development.md), [11 FAQ](docs/11-faq.md) | build, test, release |
 
-Export: `pwsh docs/build-docs.ps1` (needs [pandoc](https://pandoc.org)) writes `dist/docs/mqcache-docs.{md,html,docx,pdf,epub}`.
+A pre-built [PDF](docs/MQCache-documentation.pdf) is included. Export: `pwsh docs/build-docs.ps1` (needs [pandoc](https://pandoc.org)) writes `dist/docs/mqcache-docs.{md,html,docx,pdf,epub}`.
 
 ## Honest expectations
 

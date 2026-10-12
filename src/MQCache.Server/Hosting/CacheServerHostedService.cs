@@ -10,7 +10,7 @@ using MQCache.Core.Config;
 
 namespace MQCache.Server.Hosting;
 
-public sealed class CacheServerHostedService : IHostedService
+public sealed class CacheServerHostedService : IHostedService, IDisposable
 {
     private readonly CacheServer _server;
 
@@ -27,4 +27,6 @@ public sealed class CacheServerHostedService : IHostedService
         _server.Dispose();
         return Task.CompletedTask;
     }
+
+    public void Dispose() => _server.Dispose();
 }

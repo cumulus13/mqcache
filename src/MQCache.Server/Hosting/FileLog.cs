@@ -13,7 +13,7 @@ public sealed class FileLog : ILog, IDisposable
 {
     private readonly LogLevel _min;
     private readonly string? _dir;
-    private readonly string _prefix;
+    private readonly string _prefix = "";
     private readonly bool _console;
     private readonly object _gate = new();
     private string _currentDay = "";

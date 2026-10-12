@@ -102,7 +102,7 @@ public class StoreTests
         Assert.Equal(-9, s.IncrBy("n", -20));
         s.Set("t", B("abc"));
         Assert.Throws<CacheValueException>(() => s.IncrBy("t", 1));
-        s.Set("max", B(long.MaxValue.ToString()));
+        s.Set("max", B(long.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         Assert.Throws<CacheValueException>(() => s.IncrBy("max", 1));
     }
 
@@ -352,7 +352,11 @@ public class SnapshotTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "mqcache-test-" + Guid.NewGuid().ToString("N"));
     public SnapshotTests() => Directory.CreateDirectory(_dir);
-    public void Dispose() { try { Directory.Delete(_dir, true); } catch (IOException) { } }
+    public void Dispose()
+    {
+        try { Directory.Delete(_dir, true); } catch (IOException) { }
+        GC.SuppressFinalize(this);
+    }
 
     private static byte[] B(string s) => Encoding.UTF8.GetBytes(s);
 

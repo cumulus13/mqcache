@@ -2,6 +2,17 @@
 
 All notable changes are documented here. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.0.2] - 2026-10-12
+
+### Fixed
+- Build: `WindowsServiceHelpers` lives in `Microsoft.Extensions.Hosting.WindowsServices`; added the missing `using`.
+- Docs: the browser-based PDF fallback now waits for Edge/Chrome (`Start-Process -Wait`) and polls for the file; in CI a missing PDF fails the job instead of being skipped silently.
+- Docs: print stylesheet (A4 margins, code blocks keep their layout, tables may split across pages, repeated table headers).
+- Formatting: whitespace normalised with `dotnet format`; analyzer warnings in Hosting and tests removed.
+
+### Added
+- `docs/MQCache-documentation.pdf`, a pre-built copy of the documentation.
+
 ## [1.0.1] - 2026-10-11
 
 ### Fixed

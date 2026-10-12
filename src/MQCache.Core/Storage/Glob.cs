@@ -27,29 +27,29 @@ public static class Glob
                     si++; pi++;
                     break;
                 case '[':
-                {
-                    if (si >= s.Length) return false;
-                    pi++;
-                    var negate = pi < p.Length && p[pi] == '^';
-                    if (negate) pi++;
-                    var matched = false;
-                    while (pi < p.Length && p[pi] != ']')
                     {
-                        if (p[pi] == '\\' && pi + 1 < p.Length) { pi++; if (p[pi] == s[si]) matched = true; pi++; }
-                        else if (pi + 2 < p.Length && p[pi + 1] == '-' && p[pi + 2] != ']')
+                        if (si >= s.Length) return false;
+                        pi++;
+                        var negate = pi < p.Length && p[pi] == '^';
+                        if (negate) pi++;
+                        var matched = false;
+                        while (pi < p.Length && p[pi] != ']')
                         {
-                            var lo = p[pi]; var hi = p[pi + 2];
-                            if (lo > hi) (lo, hi) = (hi, lo);
-                            if (s[si] >= lo && s[si] <= hi) matched = true;
-                            pi += 3;
+                            if (p[pi] == '\\' && pi + 1 < p.Length) { pi++; if (p[pi] == s[si]) matched = true; pi++; }
+                            else if (pi + 2 < p.Length && p[pi + 1] == '-' && p[pi + 2] != ']')
+                            {
+                                var lo = p[pi]; var hi = p[pi + 2];
+                                if (lo > hi) (lo, hi) = (hi, lo);
+                                if (s[si] >= lo && s[si] <= hi) matched = true;
+                                pi += 3;
+                            }
+                            else { if (p[pi] == s[si]) matched = true; pi++; }
                         }
-                        else { if (p[pi] == s[si]) matched = true; pi++; }
+                        if (pi < p.Length) pi++; // closing ]
+                        if (matched == negate) return false;
+                        si++;
+                        break;
                     }
-                    if (pi < p.Length) pi++; // closing ]
-                    if (matched == negate) return false;
-                    si++;
-                    break;
-                }
                 case '\\':
                     if (pi + 1 < p.Length) pi++;
                     goto default;

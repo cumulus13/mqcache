@@ -6,6 +6,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using MQCache.Core;
 using MQCache.Core.Config;
 using MQCache.Server;
