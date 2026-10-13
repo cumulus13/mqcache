@@ -7,7 +7,7 @@ A **Redis-like cache server and client that use Microsoft Message Queuing (MSMQ)
 
 
 <p align="center">
-  <img src="https://github.com/cumulus13/mqcache_design/blob/15230ff8f630bbded835ee8158445ce6ff846682/icon.png" alt="Logo" width="320">
+  <img src="https://raw.githubusercontent.com/cumulus13/mqcache_design/15230ff8f630bbded835ee8158445ce6ff846682/icon.png" alt="Logo" width="320">
 </p>
 
 
@@ -19,7 +19,7 @@ A **Redis-like cache server and client that use Microsoft Message Queuing (MSMQ)
 * Idempotent retries (request-id dedupe), snapshots with checksum, LRU eviction, memory limit, password, structured logs
 * Complete documentation exportable to **PDF / DOCX / HTML / EPUB / Markdown**; GitHub workflows for CI, build and release
 
-[![Architecture](https://github.com/cumulus13/mqcache_design/blob/15230ff8f630bbded835ee8158445ce6ff846682/architecture1.png)](https://github.com/cumulus13/mqcache_design/blob/15230ff8f630bbded835ee8158445ce6ff846682/architecture1.png)
+[![Architecture](https://raw.githubusercontent.com/cumulus13/mqcache_design/15230ff8f630bbded835ee8158445ce6ff846682/architecture1.png)](https://raw.githubusercontent.com/cumulus13/mqcache_design/15230ff8f630bbded835ee8158445ce6ff846682/architecture1.png)
 
 ## Quick start
 
