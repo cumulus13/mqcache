@@ -117,6 +117,8 @@ jobs:
         shell: pwsh
         run: ./docs/build-docs.ps1 -Version ci-${{ github.run_number }}
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: docs
           path: dist/docs/**
+          if-no-files-found: warn
