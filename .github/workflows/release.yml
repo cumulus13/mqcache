@@ -79,10 +79,17 @@ jobs:
       - name: Pack NuGet packages (Core, Messaging, Client)
         run: dotnet pack MQCache.sln -c Release -p:Version=${{ needs.verify.outputs.version }} -o release
 
+      # - name: Build docs
+      #   shell: pwsh
+      #   run: |
+      #     choco install pandoc -y --no-progress
+      #     ./docs/build-docs.ps1 -Version ${{ needs.verify.outputs.version }} -Out release/docs
+      #     Compress-Archive -Path release/docs/* -DestinationPath "release/mqcache-${{ needs.verify.outputs.version }}-docs.zip"
       - name: Build docs
         shell: pwsh
         run: |
           choco install pandoc -y --no-progress
+          New-Item -ItemType Directory -Force -Path release/docs
           ./docs/build-docs.ps1 -Version ${{ needs.verify.outputs.version }} -Out release/docs
           Compress-Archive -Path release/docs/* -DestinationPath "release/mqcache-${{ needs.verify.outputs.version }}-docs.zip"
 

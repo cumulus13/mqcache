@@ -19,7 +19,7 @@ A **Redis-like cache server and client that use Microsoft Message Queuing (MSMQ)
 * Idempotent retries (request-id dedupe), snapshots with checksum, LRU eviction, memory limit, password, structured logs
 * Complete documentation exportable to **PDF / DOCX / HTML / EPUB / Markdown**; GitHub workflows for CI, build and release
 
-[![Architecture](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture1.png)](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture1.png)
+[![Architecture](https://github.com/cumulus13/mqcache/blob/master/architecture1.png)](https://github.com/cumulus13/mqcache/blob/master/architecture1.png)
 
 ## Quick start
 

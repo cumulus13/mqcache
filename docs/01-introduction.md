@@ -52,7 +52,7 @@ Other deliberate limits:
     SQ["subscriber queue"] -->|"published messages"| PUB["PUBLISH fan-out (or MSMQ multicast)"]
 ```
 
-[![Architecture](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture.png)](https://raw.githubusercontent.com/cumulus13/mqcache/master/architecture.png)
+[![Architecture](https://github.com/cumulus13/mqcache/blob/master/architecture.png)](https://github.com/cumulus13/mqcache/blob/master/architecture.png)
 
 1. The client creates a private **reply queue** `mqcache.reply.<pid>.<starttime>.<rand>` and removes it on dispose (orphans of crashed processes are swept at the next start).
 2. A request message carries one or more commands, the client's password, a client-generated **request id** (idempotency key) and the reply queue as `ResponseQueue`.
