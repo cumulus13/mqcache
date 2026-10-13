@@ -1,9 +1,10 @@
+---
 name: Docs
 
 on:
   push:
     branches: [master]
-    paths: ['docs/**', 'README.md', 'conf/**']
+    paths: ['docs/**', 'README.md', 'conf/**', '.github/actions/**']
   workflow_dispatch:
 
 permissions:
@@ -14,7 +15,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - run: choco install pandoc -y --no-progress
+      - uses: ./.github/actions/setup-pandoc
       - name: Build all formats
         shell: pwsh
         run: ./docs/build-docs.ps1 -Version main-${{ github.run_number }}

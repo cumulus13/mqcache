@@ -112,8 +112,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install pandoc
-        run: choco install pandoc -y --no-progress
+      - uses: ./.github/actions/setup-pandoc
       - name: Build docs (md, html, docx, pdf, epub)
         shell: pwsh
         run: ./docs/build-docs.ps1 -Version ci-${{ github.run_number }}

@@ -1,0 +1,48 @@
+name: Setup pandoc
+description: >
+  Installs pandoc on a Windows runner. Tries Chocolatey with retries (its feed has transient 5xx outages),
+  then falls back to downloading the latest release zip from github.com/jgm/pandoc.
+runs:
+  using: composite
+  steps:
+    - name: Install pandoc (retry + fallback)
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        function Test-Pandoc {
+          if (Get-Command pandoc -ErrorAction SilentlyContinue) { return $true }
+          $known = 'C:\Program Files\Pandoc'
+          if (Test-Path (Join-Path $known 'pandoc.exe')) {
+            $env:Path = "$known;$env:Path"
+            $known | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+            return $true
+          }
+          return $false
+        }
+
+        if (-not (Test-Pandoc)) {
+          for ($i = 1; $i -le 3 -and -not (Test-Pandoc); $i++) {
+            Write-Host "choco install pandoc (attempt $i/3)"
+            choco install pandoc -y --no-progress
+            if (Test-Pandoc) { break }
+            Start-Sleep -Seconds (15 * $i)
+          }
+        }
+
+        if (-not (Test-Pandoc)) {
+          Write-Warning 'Chocolatey failed; downloading pandoc from GitHub releases instead.'
+          $dir = Join-Path $env:RUNNER_TEMP 'pandoc'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          gh release download --repo jgm/pandoc --pattern '*windows-x86_64.zip' --dir $dir --clobber
+          $zip = Get-ChildItem $dir -Filter '*.zip' | Select-Object -First 1
+          if (-not $zip) { throw 'could not download pandoc from GitHub releases' }
+          Expand-Archive $zip.FullName -DestinationPath $dir -Force
+          $exe = Get-ChildItem $dir -Recurse -Filter pandoc.exe | Select-Object -First 1
+          if (-not $exe) { throw 'pandoc.exe not found in the downloaded archive' }
+          $exe.DirectoryName | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          $env:Path = "$($exe.DirectoryName);$env:Path"
+        }
+
+        if (-not (Get-Command pandoc -ErrorAction SilentlyContinue)) { throw 'pandoc is not available after all install attempts' }
+        pandoc --version | Select-Object -First 1

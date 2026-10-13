@@ -79,19 +79,25 @@ jobs:
       - name: Pack NuGet packages (Core, Messaging, Client)
         run: dotnet pack MQCache.sln -c Release -p:Version=${{ needs.verify.outputs.version }} -o release
 
-      # - name: Build docs
-      #   shell: pwsh
-      #   run: |
-      #     choco install pandoc -y --no-progress
-      #     ./docs/build-docs.ps1 -Version ${{ needs.verify.outputs.version }} -Out release/docs
-      #     Compress-Archive -Path release/docs/* -DestinationPath "release/mqcache-${{ needs.verify.outputs.version }}-docs.zip"
+      # Documentation is a nice-to-have: an outage of an external package feed must not block shipping the binaries.
+      - name: Setup pandoc
+        id: pandoc
+        continue-on-error: true
+        uses: ./.github/actions/setup-pandoc
+
       - name: Build docs
+        id: docs
+        if: steps.pandoc.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
         run: |
-          choco install pandoc -y --no-progress
-          New-Item -ItemType Directory -Force -Path release/docs
           ./docs/build-docs.ps1 -Version ${{ needs.verify.outputs.version }} -Out release/docs
           Compress-Archive -Path release/docs/* -DestinationPath "release/mqcache-${{ needs.verify.outputs.version }}-docs.zip"
+
+      - name: Warn when the documentation bundle is missing
+        if: steps.pandoc.outcome != 'success' || steps.docs.outcome != 'success'
+        shell: pwsh
+        run: Write-Host "::warning title=Docs not published::pandoc setup or the docs build failed; the release ships without mqcache-${{ needs.verify.outputs.version }}-docs.zip. Re-run the Docs workflow and attach the artifact."
 
       - name: Checksums and release notes
         shell: pwsh
