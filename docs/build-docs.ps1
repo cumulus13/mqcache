@@ -12,7 +12,8 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not (Get-Command pandoc -ErrorAction SilentlyContinue)) { throw 'pandoc not found. Install from https://pandoc.org/installing.html (choco install pandoc).' }
 
-New-Item -ItemType Directory -Force -Path $Out | Out-Null
+# Absolute path: headless Edge/Chrome resolve a relative --print-to-pdf path against their own working directory.
+$Out = (New-Item -ItemType Directory -Force -Path $Out).FullName
 $chapters = Get-ChildItem -Path $PSScriptRoot -File | Where-Object { $_.Name -match '^\d{2}-.*\.md$' } | Sort-Object Name
 if (-not $chapters) { throw 'no chapters found (docs/NN-*.md)' }
 
@@ -30,7 +31,10 @@ $combined = Join-Path $Out 'mqcache-docs.md'
 $body = ($chapters | ForEach-Object { (Get-Content $_.FullName -Raw).TrimEnd() + "`n`n" }) -join ''
 Set-Content -Path $combined -Value ($meta + $body) -Encoding UTF8
 
-$common = @('--from', 'markdown+pipe_tables+fenced_code_blocks', '--toc', '--toc-depth=3', '--number-sections', '--highlight-style=tango')
+# pandoc >= 3.8 renamed --highlight-style to --syntax-highlighting
+$helpText = (& pandoc --help) -join "`n"
+$highlight = if ($helpText -match '--syntax-highlighting') { '--syntax-highlighting=tango' } else { '--highlight-style=tango' }
+$common = @('--from', 'markdown+pipe_tables+fenced_code_blocks', '--toc', '--toc-depth=3', '--number-sections', $highlight)
 $produced = @()
 
 foreach ($f in $Formats) {
