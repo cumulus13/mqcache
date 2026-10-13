@@ -58,7 +58,7 @@ jobs:
           Remove-Item "stage/${{ matrix.rid }}/*.pdb" -ErrorAction SilentlyContinue
           Compress-Archive -Path "stage/${{ matrix.rid }}/*" -DestinationPath "mqcache-$v-${{ matrix.rid }}.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bin-${{ matrix.rid }}
           path: mqcache-*.zip

@@ -45,7 +45,7 @@ jobs:
           dotnet test tests/MQCache.Core.Tests -c Release --no-build
           --logger "trx;LogFileName=core.trx" --collect:"XPlat Code Coverage" --results-directory TestResults
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: unit-test-results
@@ -75,7 +75,7 @@ jobs:
           dotnet test tests/MQCache.IntegrationTests -c Release
           --logger "trx;LogFileName=integration.trx" --results-directory TestResults
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: integration-test-results
@@ -102,7 +102,7 @@ jobs:
       - name: Smoke test server config validation
         run: artifacts/win-x64/mqcache-server.exe --test-config conf/mqcache.conf
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ci-binaries
           path: artifacts/**
@@ -116,7 +116,7 @@ jobs:
       - name: Build docs (md, html, docx, pdf, epub)
         shell: pwsh
         run: ./docs/build-docs.ps1 -Version ci-${{ github.run_number }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: docs
