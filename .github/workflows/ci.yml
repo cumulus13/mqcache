@@ -22,7 +22,7 @@ jobs:
     name: Build and unit tests
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -58,7 +58,7 @@ jobs:
     # Enabling optional Windows features on hosted runners is best effort; the tests skip themselves when MSMQ is missing.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -86,7 +86,7 @@ jobs:
     runs-on: windows-latest
     needs: build-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -111,7 +111,7 @@ jobs:
     name: Build documentation
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pandoc
       - name: Build docs (md, html, docx, pdf, epub)
         shell: pwsh
