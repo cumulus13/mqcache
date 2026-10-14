@@ -19,6 +19,7 @@ public sealed class CacheClient : IDisposable
     private readonly string _replyName, _replyFormat;
     private readonly QueuePool _sendPool, _recvPool;
     private volatile bool _transactional;
+    private volatile bool _modeConfirmed;   // true once we know (detected, a reply arrived, or MSMQ rejected the other kind)
     private bool _disposed;
 
     public CacheClient(CacheClientOptions options)
@@ -34,6 +35,7 @@ public sealed class CacheClient : IDisposable
         _replyFormat = ReplyQueues.Format(options.ReplyScheme, options.ReplyHost, _replyName);
 
         _transactional = options.Transactional;
+        if (options.DetectQueueType && _server.IsLocal) TryDetectQueueType();
         _sendPool = new QueuePool(() => QueueAdmin.Open(_server.QueueSpec, QueueAccessMode.Send));
         _recvPool = new QueuePool(() => QueueAdmin.Open(path, QueueAccessMode.Receive));
     }
@@ -99,13 +101,18 @@ public sealed class CacheClient : IDisposable
         var retries = call?.Retries ?? _o.Retries;
         Exception? last = null;
 
+        var initialMode = _transactional;
         for (var attempt = 0; attempt <= retries; attempt++)
         {
-            var id = SendRaw(body, so, _replyFormat, null);
+            // Until the queue kind is confirmed, alternate between the two send modes on each attempt (same request id,
+            // so the server de-duplicates if both ever arrive).
+            var mode = _modeConfirmed ? _transactional : (attempt % 2 == 0 ? initialMode : !initialMode);
+            var id = SendRaw(body, so, _replyFormat, null, ref mode);
             var q = _recvPool.Rent();
             try
             {
                 using var reply = q.ReceiveByCorrelationId(id, timeout);
+                if (!_modeConfirmed) { _transactional = mode; _modeConfirmed = true; }
                 var env = WireCodec.DecodeResponse(MessageFactory.ReadBody(reply, MessageFactory.MaxBodyBytes));
                 if (env.Results.Count == commands.Count) return env.Results;
                 if (env.Results.Count == 1 && env.Results[0].IsError) throw new CacheServerException(env.Results[0].Text ?? "error");
@@ -120,18 +127,42 @@ public sealed class CacheClient : IDisposable
         throw new CacheTimeoutException($"no reply from '{_server.QueueSpec}' after {retries + 1} attempt(s) of {timeout.TotalMilliseconds:0} ms", last);
     }
 
+    private void TryDetectQueueType()
+    {
+        try
+        {
+            using var q = new MessageQueue(_server.LocalPath);
+            _transactional = q.Transactional;
+            _modeConfirmed = true;
+        }
+        catch (MessageQueueException) { /* queue does not exist yet: keep the configured guess and probe on first use */ }
+        catch (InvalidOperationException) { }
+    }
+
     internal string SendRaw(byte[] body, SendOptions so, string? responseFormat, string? adminFormat)
+    {
+        var mode = _transactional;
+        return SendRaw(body, so, responseFormat, adminFormat, ref mode);
+    }
+
+    /// <summary>
+    /// Sends using <paramref name="transactional"/>; on return it holds the mode actually used.
+    /// MSMQ rejects a non-transactional send to a transactional queue (TransactionUsage), but it silently drops a
+    /// transactional send to a non-transactional queue, so a wrong guess in that direction only shows up as a timeout.
+    /// </summary>
+    internal string SendRaw(byte[] body, SendOptions so, string? responseFormat, string? adminFormat, ref bool transactional)
     {
         var q = _sendPool.Rent();
         try
         {
             using var m = MessageFactory.Request(body, so, responseFormat, adminFormat);
-            try { q.Send(m, _transactional ? MessageQueueTransactionType.Single : MessageQueueTransactionType.None); }
+            try { q.Send(m, transactional ? MessageQueueTransactionType.Single : MessageQueueTransactionType.None); }
             catch (MessageQueueException ex) when (ex.MessageQueueErrorCode == MessageQueueErrorCode.TransactionUsage)
             {
-                // Server queue is of the other kind: remember and resend once.
-                _transactional = !_transactional;
-                q.Send(m, _transactional ? MessageQueueTransactionType.Single : MessageQueueTransactionType.None);
+                transactional = !transactional;      // the queue is of the other kind: flip and resend once
+                _transactional = transactional;
+                _modeConfirmed = true;
+                q.Send(m, transactional ? MessageQueueTransactionType.Single : MessageQueueTransactionType.None);
             }
             return m.Id;
         }

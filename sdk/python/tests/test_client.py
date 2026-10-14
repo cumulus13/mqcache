@@ -14,10 +14,10 @@ from mqcache.errors import TransportError
 from mqcache.transport import Endpoint
 
 
-def make(server=None, *, jitter=0.0, **kw):
+def make(server=None, *, jitter=0.0, report_queue_type=False, **kw):
     server = server or RefServer()
     broker = Broker(server, jitter)
-    tr = LoopTransport(broker)
+    tr = LoopTransport(broker, report_queue_type)
     kw.setdefault("timeout", 1.0)
     kw.setdefault("retries", 1)
     return CacheClient(".", transport=tr, **kw), server, broker, tr
@@ -94,11 +94,26 @@ def test_timeout_after_all_retries():
     assert len(tr.sent) == 2
 
 
-def test_transactional_mismatch_auto_flips():
-    c, srv, *_ = make(RefServer(transactional=False), transactional=True)
-    assert c.set("k", "v")
-    assert c._transactional is False
+def test_probing_finds_nontransactional_queue_when_transactional_send_is_silently_dropped():
+    c, srv, _, tr = make(RefServer(transactional=False), transactional=True, detect_queue_type=False, timeout=0.3, retries=2)
+    assert c.set("k", "v")                                   # attempt 1 (tx) is dropped, attempt 2 (non-tx) works
+    assert c._transactional is False and c._mode_confirmed
+    before = len(tr.sent)
     assert c.get("k") == b"v"
+    assert len(tr.sent) == before + 1                         # mode remembered: no more probing
+
+
+def test_probing_finds_transactional_queue_when_msmq_rejects_nontransactional_send():
+    c, srv, *_ = make(RefServer(transactional=True), transactional=False, detect_queue_type=False)
+    assert c.set("k", "v")
+    assert c._transactional is True and c._mode_confirmed    # TransactionUsageError triggered an immediate flip
+    assert c.get("k") == b"v"
+
+
+def test_local_queue_type_is_read_not_probed():
+    c, _, _, tr = make(RefServer(transactional=False), report_queue_type=True, transactional=True, timeout=0.3)
+    assert c._mode_confirmed and c._transactional is False
+    assert c.set("k", "v") and len(tr.sent) == 1             # first attempt already uses the right mode
 
 
 def test_concurrent_callers_get_their_own_replies_out_of_order():

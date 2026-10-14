@@ -100,7 +100,7 @@ class CacheClient:
 
     def __init__(self, endpoint: str = ".", *, queue: str = "mqcache", password: Optional[str] = None,
                  timeout: float = 5.0, retries: int = 2, priority: int = Priority.NORMAL, recoverable: bool = True,
-                 transactional: bool = True, use_journal: bool = False, use_dead_letter: bool = True,
+                 transactional: bool = True, detect_queue_type: bool = True, use_journal: bool = False, use_dead_letter: bool = True,
                  reply_host: Optional[str] = None, reply_scheme: str = "os", decode_responses: bool = False,
                  subscription_renew: float = 30.0, transport: Optional[Transport] = None) -> None:
         if transport is None:
@@ -121,6 +121,12 @@ class CacheClient:
         self._reply_scheme = reply_scheme
         self._reply_host = reply_host
         self._transactional = transactional
+        self._mode_confirmed = False     # True once known: detected, a reply arrived, or MSMQ rejected the other kind
+        if detect_queue_type:
+            detected = transport.is_transactional(self._dest)
+            if detected is not None:
+                self._transactional = detected
+                self._mode_confirmed = True
         self._closed = False
         self._inbound = transport.open_inbound(PY_REPLY_PREFIX, reply_scheme, reply_host)
         self._demux = _ReplyDemux(self._inbound)
@@ -132,12 +138,17 @@ class CacheClient:
                            recoverable=self.recoverable if recoverable is None else recoverable,
                            journal=self.use_journal, dead_letter=self.use_dead_letter)
 
-    def _send(self, body: bytes, opts: SendOptions, response_format: Optional[str]) -> bytes:
+    def _send(self, body: bytes, opts: SendOptions, response_format: Optional[str],
+              mode: Optional[bool] = None) -> Tuple[bytes, bool]:
+        """Returns (message id, send mode actually used)."""
+        mode = self._transactional if mode is None else mode
         try:
-            return self._transport.send(self._dest, body, opts, response_format, self._transactional)
+            return self._transport.send(self._dest, body, opts, response_format, mode), mode
         except TransactionUsageError:
-            self._transactional = not self._transactional     # server queue is of the other kind: flip and resend once
-            return self._transport.send(self._dest, body, opts, response_format, self._transactional)
+            mode = not mode                       # MSMQ rejected this kind: the other one is right; flip and resend once
+            self._transactional = mode
+            self._mode_confirmed = True
+            return self._transport.send(self._dest, body, opts, response_format, mode), mode
 
     def _roundtrip(self, commands: Sequence[Command], atomic: bool, timeout: Optional[float], retries: Optional[int],
                    priority: Optional[int], recoverable: Optional[bool]) -> Tuple[Resp, ...]:
@@ -148,11 +159,17 @@ class CacheClient:
         rid = uuid.uuid4()    # same id on every retry => the server answers from its dedupe cache instead of re-executing
         body = encode_request(rid, commands, auth=self.password, atomic=atomic)
         opts = self._options(timeout, retries, priority, recoverable)
-        for _ in range(retries + 1):
-            msg_id = self._send(body, opts, self._inbound.format_name)
+        initial = self._transactional
+        for attempt in range(retries + 1):
+            # MSMQ silently drops a transactional send to a non-transactional queue, so until the queue kind is
+            # confirmed the attempts alternate between the two modes (same request id: the server de-duplicates).
+            mode = self._transactional if self._mode_confirmed else (initial if attempt % 2 == 0 else not initial)
+            msg_id, mode = self._send(body, opts, self._inbound.format_name, mode)
             reply = self._demux.wait(msg_id, timeout)
             if reply is None:
                 continue
+            if not self._mode_confirmed:
+                self._transactional, self._mode_confirmed = mode, True
             resp = decode_response(reply)
             if len(resp.results) == len(commands):
                 return resp.results

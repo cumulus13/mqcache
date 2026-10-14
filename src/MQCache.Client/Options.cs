@@ -32,6 +32,11 @@ public sealed class CacheClientOptions
     public string QueueName { get; set; } = "mqcache";
     /// <summary>Initial guess; the client flips automatically if the server queue is of the other kind.</summary>
     public bool Transactional { get; set; } = true;
+    /// <summary>
+    /// Read the queue's transactional flag when the server queue is local (exact, no guessing). For remote queues MSMQ
+    /// offers no way to ask, so the client falls back to probing both send modes on the first request.
+    /// </summary>
+    public bool DetectQueueType { get; set; } = true;
     public string? Password { get; set; }
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
     /// <summary>Re-sends with the same request id after a timeout; the server de-duplicates.</summary>
@@ -67,6 +72,7 @@ public sealed class CacheClientOptions
                 case "timeout": o.Timeout = TimeSpan.FromMilliseconds(long.Parse(v, CultureInfo.InvariantCulture)); break;
                 case "retries": o.Retries = int.Parse(v, CultureInfo.InvariantCulture); break;
                 case "transactional": o.Transactional = bool.Parse(v); break;
+                case "detectqueuetype": o.DetectQueueType = bool.Parse(v); break;
                 case "recoverable": o.Recoverable = bool.Parse(v); break;
                 case "journal": o.UseJournal = bool.Parse(v); break;
                 case "deadletter": o.UseDeadLetter = bool.Parse(v); break;

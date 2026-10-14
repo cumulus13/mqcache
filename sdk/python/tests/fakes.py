@@ -141,10 +141,14 @@ class _Inbound(InboundQueue):
 
 
 class LoopTransport(Transport):
-    def __init__(self, broker: Broker):
+    def __init__(self, broker: Broker, report_queue_type: bool = False):
         self.broker = broker
         self.sent: List[bytes] = []
         self.no_response_sends = 0
+        self.report_queue_type = report_queue_type     # emulate a local queue whose flag can be read
+
+    def is_transactional(self, destination):
+        return self.broker.server.transactional if self.report_queue_type else None
 
     def open_inbound(self, prefix, scheme, host):
         fmt = f"DIRECT={scheme.upper()}:{host or 'testhost'}\\private$\\{prefix}{uuid.uuid4().hex[:8]}"
@@ -152,9 +156,12 @@ class LoopTransport(Transport):
         return _Inbound(self.broker, fmt)
 
     def send(self, destination: Destination, body: bytes, options: SendOptions, response_format, transactional):
-        if transactional != self.broker.server.transactional:
-            raise TransactionUsageError("mismatch")
+        server_tx = self.broker.server.transactional
+        if not transactional and server_tx:
+            raise TransactionUsageError("non-transactional message sent to a transactional queue")   # MSMQ rejects this one
         self.sent.append(body)
+        if transactional and not server_tx:
+            return os.urandom(20)                      # MSMQ accepts it and then silently drops it
         if response_format is None:
             self.no_response_sends += 1
         mid = os.urandom(20)

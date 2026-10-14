@@ -136,6 +136,17 @@ class ComTransport(Transport):
             raise TransportError(f"MSMQ send failed (HRESULT {hr:#x} if known): {ex}" if hr is not None
                                  else f"MSMQ send failed: {ex}") from ex
 
+    def is_transactional(self, destination: Destination) -> Optional[bool]:
+        """Exact answer for local queues (path names); remote DIRECT format names cannot be queried."""
+        if destination.kind != "path":
+            return None
+        try:
+            qi = self._info(destination)
+            qi.Refresh()
+            return bool(qi.IsTransactional)
+        except Exception:  # noqa: BLE001 - queue missing, access denied...: fall back to probing
+            return None
+
     # ------------------------------------------------------------- inbound
     def open_inbound(self, prefix: str, scheme: str, host: Optional[str]) -> InboundQueue:
         import pywintypes

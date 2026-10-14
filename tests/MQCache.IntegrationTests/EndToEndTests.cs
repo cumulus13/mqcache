@@ -132,12 +132,34 @@ public class EndToEndTests
     }
 
     [MsmqFact]
-    public void WorksWithNonTransactionalQueueViaAutoFallback()
+    public void LocalQueueTypeIsDetectedWithoutProbing()
     {
         using var h = new Harness(cfg => cfg.QueueTransactional = false);
-        using var c = h.Client(o => o.Transactional = true); // wrong guess on purpose
+        using var c = h.Client(o => { o.Transactional = true; o.Timeout = TimeSpan.FromSeconds(10); }); // wrong guess on purpose
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Assert.True(c.Set("k", "v"));
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(5), "queue type should have been read from the local queue, not probed");
+        Assert.Equal("v", c.GetString("k"));
+    }
+
+    [MsmqFact]
+    public void ProbingFindsNonTransactionalQueueWhenDetectionIsOff()
+    {
+        // MSMQ silently drops a transactional send to a non-transactional queue, so the client must alternate modes on timeout.
+        using var h = new Harness(cfg => cfg.QueueTransactional = false);
+        using var c = h.Client(o => { o.Transactional = true; o.DetectQueueType = false; o.Timeout = TimeSpan.FromSeconds(3); });
         Assert.True(c.Set("k", "v"));
         Assert.Equal("v", c.GetString("k"));
+    }
+
+    [MsmqFact]
+    public void ProbingFindsTransactionalQueueWhenDetectionIsOff()
+    {
+        using var h = new Harness();
+        using var c = h.Client(o => { o.Transactional = false; o.DetectQueueType = false; o.Timeout = TimeSpan.FromSeconds(3); });
+        Assert.True(c.Set("k", "v"));
+        Assert.Equal("v", c.GetString("k"));
+        Assert.Equal("v", c.GetString("k")); // mode is remembered: no second probe
     }
 
     [MsmqFact]

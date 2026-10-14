@@ -111,8 +111,14 @@ class Transport(abc.ABC):
              response_format: Optional[str], transactional: bool) -> bytes:
         """Sends one message and returns its 20-byte MSMQ message id.
 
-        Must raise :class:`~mqcache.errors.TransactionUsageError` when the queue kind does not match ``transactional``.
+        Should raise :class:`~mqcache.errors.TransactionUsageError` when MSMQ rejects the send because the queue kind does
+        not match ``transactional``. Note that MSMQ only rejects a *non-transactional* send to a transactional queue; a
+        transactional send to a non-transactional queue is silently dropped, which the client handles by probing.
         """
+
+    def is_transactional(self, destination: Destination) -> Optional[bool]:
+        """Whether the destination queue is transactional, or None when it cannot be determined (remote queues)."""
+        return None
 
     def close(self) -> None:  # pragma: no cover - optional
         pass
